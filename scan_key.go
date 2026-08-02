@@ -38,8 +38,7 @@ func NewKeyScanner(h *Handler) *KeyScanner {
 
 // Scan reads the buttons state and tries to map them to a Key.
 //
-// It's intended to work with keyboard keys as well as gamepad buttons,
-// but right now it only works for the keyboard.
+// It's intended to work with keyboard keys as well as mouse and gamepad buttons.
 //
 // This function should be called on every frame where you're reading
 // the new keybind combination.
@@ -47,7 +46,6 @@ func NewKeyScanner(h *Handler) *KeyScanner {
 //
 // The function can return these result statuses:
 // * Unchanged - nothing updated since the last Scan() operation
-// * Changed - some keys changed, you may want to update the prompt to the user
 // * Completed - the user finished specifying the keys combination, you can use the Key as a new binding
 func (s *KeyScanner) Scan() (Key, KeyScanStatus) {
 	// TODO: respect the enabled input devices.
@@ -77,6 +75,7 @@ func (s *KeyScanner) Scan() (Key, KeyScanStatus) {
 }
 
 func (s *KeyScanner) scanMouse() (Key, KeyScanStatus) {
+	// We will need to do our own "AppendJustReleased" for mouse button presses
 	mouseKeys := make([]ebiten.MouseButton, 0, 4)
 	for k := ebiten.MouseButton(0); k < ebiten.MouseButtonMax; k++ {
 		if inpututil.IsMouseButtonJustReleased(k) {

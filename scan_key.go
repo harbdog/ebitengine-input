@@ -63,7 +63,20 @@ func (s *KeyScanner) Scan() (Key, KeyScanStatus) {
 	// This function doesn't have to be very fast, but it should be relatively
 	// inexpensive for the "no keys were pressed" case.
 	// When some keys combo is being pressed, it's OK to spend some resources.
+	k, status := s.scanKeyboard()
 
+	switch status {
+	case KeyScanCompleted:
+		s.lastNumKeys = 0
+		s.key = Key{}
+		s.canScan = false
+	case KeyScanChanged:
+		s.key = k
+	}
+	return k, status
+}
+
+func (s *KeyScanner) scanKeyboard() (Key, KeyScanStatus) {
 	// This slice is stack-allocated; for the most cases, 4 keys are enough.
 	keys := make([]ebiten.Key, 0, 4)
 	keys = inpututil.AppendPressedKeys(keys)
@@ -84,26 +97,12 @@ func (s *KeyScanner) Scan() (Key, KeyScanStatus) {
 		// One or more keys are released.
 		// Consider it to be a confirmation event.
 		result := s.key
-		s.lastNumKeys = 0
-		s.key = Key{}
-		s.canScan = false
 		return result, KeyScanCompleted
 	}
 
 	s.lastNumKeys = len(keys)
-
-	k, ok := scanKey(keys)
-	status := KeyScanUnchanged
-	if ok {
-		s.key = k
-		status = KeyScanChanged
-	}
-	return k, status
-}
-
-func scanKey(keys []ebiten.Key) (Key, bool) {
 	if len(keys) == 0 {
-		return Key{}, false
+		return Key{}, KeyScanUnchanged
 	}
 
 	containsKeyCode := func(keys []ebiten.Key, code int) bool {
@@ -162,9 +161,9 @@ Loop:
 	if mappedKey.name == "" {
 		switch {
 		case hasCtrl:
-			return ctrlKey, true
+			return ctrlKey, KeyScanUnchanged
 		case hasShift:
-			return shiftKey, true
+			return shiftKey, KeyScanUnchanged
 		}
 	}
 
@@ -184,5 +183,10 @@ Loop:
 		}
 	}
 
-	return mappedKey, mappedKey.name != ""
+	status := KeyScanUnchanged
+	if mappedKey.name != "" {
+		status = KeyScanChanged
+	}
+
+	return mappedKey, status
 }

@@ -62,11 +62,53 @@ func (s *KeyScanner) Scan() (Key, KeyScanStatus) {
 	// When some keys combo is being pressed, it's OK to spend some resources.
 	k, status := s.scanKeyboard()
 
+	if status == KeyScanUnchanged {
+		// scan for gamepad buttons also
+		k, status = s.scanGamepad()
+	}
+
 	switch status {
 	case KeyScanCompleted:
 		s.canScan = false
 	}
 	return k, status
+}
+
+func (s *KeyScanner) scanGamepad() (Key, KeyScanStatus) {
+	gamepadKeys := make([]ebiten.StandardGamepadButton, 0, 4)
+	gamepadKeys = inpututil.AppendJustReleasedStandardGamepadButtons(ebiten.GamepadID(s.h.id), gamepadKeys)
+	if len(gamepadKeys) == 0 {
+		return Key{}, KeyScanUnchanged
+	}
+
+	containsButtonCode := func(keys []ebiten.StandardGamepadButton, code int) bool {
+		for _, k := range keys {
+			if int(k) == code {
+				return true
+			}
+		}
+		return false
+	}
+
+	var mappedKey Key
+
+	// map the Ebitengine keys to the local types.
+Loop:
+	for _, lk := range allKeys {
+		switch lk.kind {
+		case keyGamepad:
+			if containsButtonCode(gamepadKeys, lk.code) {
+				mappedKey = lk
+				break Loop
+			}
+		}
+	}
+
+	status := KeyScanUnchanged
+	if mappedKey.name != "" {
+		status = KeyScanCompleted
+	}
+	return mappedKey, status
 }
 
 func (s *KeyScanner) scanKeyboard() (Key, KeyScanStatus) {
@@ -156,6 +198,5 @@ Loop:
 	if mappedKey.name != "" {
 		status = KeyScanCompleted
 	}
-
 	return mappedKey, status
 }

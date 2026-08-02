@@ -118,6 +118,15 @@ Loop:
 		}
 	}
 
+	// attach any held key modifiers
+	keymod := s.scanKeyModifiers()
+	if keymod != ModUnknown {
+		switch mappedKey.kind {
+		case keyMouse:
+			mappedKey = KeyWithModifier(mappedKey, keymod)
+		}
+	}
+
 	status := KeyScanUnchanged
 	if mappedKey.name != "" {
 		status = KeyScanCompleted
@@ -176,9 +185,6 @@ Loop:
 
 func (s *KeyScanner) scanKeyboard() (Key, KeyScanStatus) {
 	// This slice is stack-allocated; for the most cases, 4 keys are enough.
-	heldKeys := make([]ebiten.Key, 0, 4)
-	heldKeys = inpututil.AppendPressedKeys(heldKeys)
-
 	keys := make([]ebiten.Key, 0, 4)
 	keys = inpututil.AppendJustReleasedKeys(keys)
 
@@ -203,9 +209,48 @@ func (s *KeyScanner) scanKeyboard() (Key, KeyScanStatus) {
 		return false
 	}
 
-	// Parse the keys combination into something that this library can handle.
+	// map the Ebitengine keys to the local types.
+	// In theory, we could generate a big LUT to make this mapping very fast.
+	// But this would mean more data reserved for this package.
+	// Since this part of the code is not that performance-sensitive,
+	// we'll handle it in a less efficient, but less memory-hungry way.
+	var mappedKey Key
 
-	// Round 1: walk the held keys that are being pressed to collect the modifiers.
+Loop:
+	for _, k := range allKeys {
+		switch k.kind {
+		case keyKeyboard:
+			if containsKeyCode(keys, k.code) {
+				mappedKey = k
+				break Loop
+			}
+		}
+	}
+
+	// attach any held key modifiers
+	keymod := s.scanKeyModifiers()
+	if keymod != ModUnknown {
+		switch mappedKey.kind {
+		case keyKeyboard:
+			mappedKey = KeyWithModifier(mappedKey, keymod)
+		}
+	}
+
+	status := KeyScanUnchanged
+	if mappedKey.name != "" {
+		status = KeyScanCompleted
+	}
+	return mappedKey, status
+}
+
+func (s *KeyScanner) scanKeyModifiers() KeyModifier {
+	if !s.canScan {
+		return ModUnknown
+	}
+
+	heldKeys := make([]ebiten.Key, 0, 4)
+	heldKeys = inpututil.AppendPressedKeys(heldKeys)
+
 	var ctrlKey Key
 	var shiftKey Key
 	for _, k := range heldKeys {
@@ -223,24 +268,6 @@ func (s *KeyScanner) scanKeyboard() (Key, KeyScanStatus) {
 	hasCtrl := ctrlKey.name != ""
 	hasShift := shiftKey.name != ""
 
-	var mappedKey Key
-
-	// Round 2: map the Ebitengine keys to the local types.
-	// In theory, we could generate a big LUT to make this mapping very fast.
-	// But this would mean more data reserved for this package.
-	// Since this part of the code is not that performance-sensitive,
-	// we'll handle it in a less efficient, but less memory-hungry way.
-Loop:
-	for _, k := range allKeys {
-		switch k.kind {
-		case keyKeyboard:
-			if containsKeyCode(keys, k.code) {
-				mappedKey = k
-				break Loop
-			}
-		}
-	}
-
 	var keymod KeyModifier
 	switch {
 	case hasCtrl && hasShift:
@@ -250,16 +277,5 @@ Loop:
 	case hasShift:
 		keymod = ModShift
 	}
-	if keymod != ModUnknown {
-		switch mappedKey.kind {
-		case keyKeyboard, keyMouse:
-			mappedKey = KeyWithModifier(mappedKey, keymod)
-		}
-	}
-
-	status := KeyScanUnchanged
-	if mappedKey.name != "" {
-		status = KeyScanCompleted
-	}
-	return mappedKey, status
+	return keymod
 }

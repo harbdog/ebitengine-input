@@ -539,17 +539,17 @@ func (h *Handler) keyIsJustPressed(k Key) bool {
 			ebiten.IsKeyPressed(ebiten.KeyShift) &&
 			inpututil.IsKeyJustPressed(ebiten.Key(k.code))
 	case keyWheel:
-		return h.wheelIsJustPressed(wheelCode(k.code))
+		return h.wheelIsPressed(wheelCode(k.code))
 	case keyWheelWithCtrl:
 		return ebiten.IsKeyPressed(ebiten.KeyControl) &&
-			h.wheelIsJustPressed(wheelCode(k.code))
+			h.wheelIsPressed(wheelCode(k.code))
 	case keyWheelWithShift:
 		return ebiten.IsKeyPressed(ebiten.KeyShift) &&
-			h.wheelIsJustPressed(wheelCode(k.code))
+			h.wheelIsPressed(wheelCode(k.code))
 	case keyWheelWithCtrlShift:
 		return ebiten.IsKeyPressed(ebiten.KeyControl) &&
 			ebiten.IsKeyPressed(ebiten.KeyShift) &&
-			h.wheelIsJustPressed(wheelCode(k.code))
+			h.wheelIsPressed(wheelCode(k.code))
 	default:
 		return inpututil.IsKeyJustPressed(ebiten.Key(k.code))
 	}
@@ -651,6 +651,18 @@ func (h *Handler) keyIsPressed(k Key) bool {
 		return ebiten.IsKeyPressed(ebiten.KeyControl) &&
 			ebiten.IsKeyPressed(ebiten.KeyShift) &&
 			ebiten.IsKeyPressed(ebiten.Key(k.code))
+	case keyWheel:
+		return h.wheelIsPressed(wheelCode(k.code))
+	case keyWheelWithCtrl:
+		return ebiten.IsKeyPressed(ebiten.KeyControl) &&
+			h.wheelIsPressed(wheelCode(k.code))
+	case keyWheelWithShift:
+		return ebiten.IsKeyPressed(ebiten.KeyShift) &&
+			h.wheelIsPressed(wheelCode(k.code))
+	case keyWheelWithCtrlShift:
+		return ebiten.IsKeyPressed(ebiten.KeyControl) &&
+			ebiten.IsKeyPressed(ebiten.KeyShift) &&
+			h.wheelIsPressed(wheelCode(k.code))
 	default:
 		return ebiten.IsKeyPressed(ebiten.Key(k.code))
 	}
@@ -710,7 +722,7 @@ func (h *Handler) isDPadAxisActive(code int, vec Vec) bool {
 	return false
 }
 
-func (h *Handler) wheelIsJustPressed(code wheelCode) bool {
+func (h *Handler) wheelIsPressed(code wheelCode) bool {
 	switch code {
 	case wheelDown:
 		return h.sys.wheel.Y > 0

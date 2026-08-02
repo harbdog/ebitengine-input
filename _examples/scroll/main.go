@@ -66,11 +66,11 @@ func (g *exampleGame) Update() error {
 }
 
 func (g *exampleGame) handleScroll() {
-	if info, ok := g.inputHandler.JustPressedActionInfo(ActionFastScrollVertical); ok {
+	if info, ok := g.inputHandler.PressedActionInfo(ActionFastScrollVertical); ok {
 		g.pos.Y += info.Pos.Y * 7
 		return
 	}
-	if info, ok := g.inputHandler.JustPressedActionInfo(ActionScrollVertical); ok {
+	if info, ok := g.inputHandler.PressedActionInfo(ActionScrollVertical); ok {
 		g.pos.Y += info.Pos.Y
 		return
 	}

@@ -68,11 +68,11 @@ func (g *exampleGame) Update() error {
 		g.started = true
 	}
 
-	g.handleRemap()
-
 	if !g.scanning && g.inputHandler.ActionIsJustPressed(ActionPing) {
 		fmt.Printf("ping! (activated with %s keybind)\n", g.k)
 	}
+
+	g.handleRemap()
 
 	return nil
 }

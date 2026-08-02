@@ -32,7 +32,7 @@ type exampleGame struct {
 	prevK    input.Key
 	scanning bool
 
-	keyScanner input.KeyScanner
+	keyScanner *input.KeyScanner
 
 	inputHandler *input.Handler
 	inputSystem  input.System
@@ -80,26 +80,20 @@ func (g *exampleGame) Update() error {
 func (g *exampleGame) handleRemap() {
 	if !g.scanning {
 		if g.inputHandler.ActionIsJustPressed(ActionRemap) {
-			g.prevK = g.k // Save it for an easier fallback
 			g.scanning = true
 		}
 		return
 	}
 
 	k, status := g.keyScanner.Scan()
-	if status != input.KeyScanUnchanged {
-		g.k = k
-	}
-	if status == input.KeyScanCompleted {
-		g.scanning = false
+	if k == input.KeyWithModifier(input.KeyEnter, input.ModControl) || k == input.KeyControl || k == input.KeyEnter {
+		// reject the keys used to start key scanning for the purposes of the example
+	} else if status == input.KeyScanCompleted {
 		// Check for the new key to be available.
-		// Resolve the conflicts here; I'll just reject
-		// the combination that is already in use.
-		if g.k == input.KeyWithModifier(input.KeyEnter, input.ModControl) {
-			g.k = g.prevK
-		} else {
-			g.inputHandler.Remap(g.makeKeymap())
-		}
+		// Resolve the conflicts here.
+		g.scanning = false
+		g.k = k
+		g.inputHandler.Remap(g.makeKeymap())
 	}
 }
 
@@ -113,4 +107,5 @@ func (g *exampleGame) makeKeymap() input.Keymap {
 func (g *exampleGame) Init() {
 	g.k = input.KeyQ
 	g.inputHandler = g.inputSystem.NewHandler(0, g.makeKeymap())
+	g.keyScanner = input.NewKeyScanner(g.inputHandler)
 }

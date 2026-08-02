@@ -142,7 +142,7 @@ func (s *KeyScanner) scanKeyboard() (Key, KeyScanStatus) {
 
 	// Parse the keys combination into something that this library can handle.
 
-	// Round 1: walk the actual keys that are being pressed and collect the modifiers.
+	// Round 1: walk the held keys that are being pressed to collect the modifiers.
 	var ctrlKey Key
 	var shiftKey Key
 	for _, k := range heldKeys {

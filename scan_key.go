@@ -10,7 +10,6 @@ type KeyScanStatus int
 
 const (
 	KeyScanUnchanged KeyScanStatus = iota
-	KeyScanChanged
 	KeyScanCompleted
 )
 
@@ -21,10 +20,8 @@ const (
 //
 // Experimental: this is a part of a key remapping API, which is not stable yet.
 type KeyScanner struct {
-	lastNumKeys int
-	canScan     bool
-	key         Key
-	h           *Handler
+	canScan bool
+	h       *Handler
 }
 
 // NewKeyScanner creates a key scanner for the specifier input Handler.
@@ -67,19 +64,18 @@ func (s *KeyScanner) Scan() (Key, KeyScanStatus) {
 
 	switch status {
 	case KeyScanCompleted:
-		s.lastNumKeys = 0
-		s.key = Key{}
 		s.canScan = false
-	case KeyScanChanged:
-		s.key = k
 	}
 	return k, status
 }
 
 func (s *KeyScanner) scanKeyboard() (Key, KeyScanStatus) {
 	// This slice is stack-allocated; for the most cases, 4 keys are enough.
+	heldKeys := make([]ebiten.Key, 0, 4)
+	heldKeys = inpututil.AppendPressedKeys(heldKeys)
+
 	keys := make([]ebiten.Key, 0, 4)
-	keys = inpututil.AppendPressedKeys(keys)
+	keys = inpututil.AppendJustReleasedKeys(keys)
 
 	if !s.canScan {
 		if len(keys) != 0 {
@@ -88,20 +84,8 @@ func (s *KeyScanner) scanKeyboard() (Key, KeyScanStatus) {
 		s.canScan = true
 	}
 
-	if len(keys) == s.lastNumKeys {
-		// It's either empty or we're still collecting the keys.
-		return Key{}, KeyScanUnchanged
-	}
-
-	if len(keys) < s.lastNumKeys {
-		// One or more keys are released.
-		// Consider it to be a confirmation event.
-		result := s.key
-		return result, KeyScanCompleted
-	}
-
-	s.lastNumKeys = len(keys)
 	if len(keys) == 0 {
+		// We're still collecting the keys.
 		return Key{}, KeyScanUnchanged
 	}
 
@@ -117,14 +101,10 @@ func (s *KeyScanner) scanKeyboard() (Key, KeyScanStatus) {
 	// Parse the keys combination into something that this library can handle.
 
 	// Round 1: walk the actual keys that are being pressed and collect the modifiers.
-	// Remove the modifiers from the slice (inplace).
 	var ctrlKey Key
 	var shiftKey Key
-	keysWithoutMods := keys[:0]
-	for _, k := range keys {
+	for _, k := range heldKeys {
 		switch k {
-		case ebiten.KeyControl, ebiten.KeyShift:
-			// Just omit them from the slice.
 		case ebiten.KeyControlLeft:
 			ctrlKey = KeyControlLeft
 		case ebiten.KeyControlRight:
@@ -133,8 +113,6 @@ func (s *KeyScanner) scanKeyboard() (Key, KeyScanStatus) {
 			shiftKey = KeyShiftLeft
 		case ebiten.KeyShiftRight:
 			shiftKey = KeyShiftRight
-		default:
-			keysWithoutMods = append(keysWithoutMods, k)
 		}
 	}
 	hasCtrl := ctrlKey.name != ""
@@ -148,22 +126,13 @@ func (s *KeyScanner) scanKeyboard() (Key, KeyScanStatus) {
 	// Since this part of the code is not that performance-sensitive,
 	// we'll handle it in a less efficient, but less memory-hungry way.
 Loop:
-	for _, lk := range allKeys {
-		switch lk.kind {
+	for _, k := range allKeys {
+		switch k.kind {
 		case keyKeyboard:
-			if containsKeyCode(keysWithoutMods, lk.code) {
-				mappedKey = lk
+			if containsKeyCode(keys, k.code) {
+				mappedKey = k
 				break Loop
 			}
-		}
-	}
-
-	if mappedKey.name == "" {
-		switch {
-		case hasCtrl:
-			return ctrlKey, KeyScanUnchanged
-		case hasShift:
-			return shiftKey, KeyScanUnchanged
 		}
 	}
 
@@ -185,7 +154,7 @@ Loop:
 
 	status := KeyScanUnchanged
 	if mappedKey.name != "" {
-		status = KeyScanChanged
+		status = KeyScanCompleted
 	}
 
 	return mappedKey, status

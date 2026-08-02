@@ -77,6 +77,14 @@ func (s *KeyScanner) Scan() (Key, KeyScanStatus) {
 func (s *KeyScanner) scanGamepad() (Key, KeyScanStatus) {
 	gamepadKeys := make([]ebiten.StandardGamepadButton, 0, 4)
 	gamepadKeys = inpututil.AppendJustReleasedStandardGamepadButtons(ebiten.GamepadID(s.h.id), gamepadKeys)
+
+	if !s.canScan {
+		if len(gamepadKeys) != 0 {
+			return Key{}, KeyScanUnchanged
+		}
+		s.canScan = true
+	}
+
 	if len(gamepadKeys) == 0 {
 		return Key{}, KeyScanUnchanged
 	}

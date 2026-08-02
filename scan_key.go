@@ -51,7 +51,6 @@ func NewKeyScanner(h *Handler) *KeyScanner {
 // * Completed - the user finished specifying the keys combination, you can use the Key as a new binding
 func (s *KeyScanner) Scan() (Key, KeyScanStatus) {
 	// TODO: respect the enabled input devices.
-	// TODO: scan the gamepad buttons as well.
 
 	// Note that this function may not be needed by some users,
 	// so we're better of making it as independent as possible, so it
@@ -61,9 +60,12 @@ func (s *KeyScanner) Scan() (Key, KeyScanStatus) {
 	// inexpensive for the "no keys were pressed" case.
 	// When some keys combo is being pressed, it's OK to spend some resources.
 	k, status := s.scanKeyboard()
-
 	if status == KeyScanUnchanged {
-		// scan for gamepad buttons also
+		// scan for mouse buttons
+		k, status = s.scanMouse()
+	}
+	if status == KeyScanUnchanged {
+		// scan for gamepad buttons
 		k, status = s.scanGamepad()
 	}
 
@@ -72,6 +74,55 @@ func (s *KeyScanner) Scan() (Key, KeyScanStatus) {
 		s.canScan = false
 	}
 	return k, status
+}
+
+func (s *KeyScanner) scanMouse() (Key, KeyScanStatus) {
+	mouseKeys := make([]ebiten.MouseButton, 0, 4)
+	for k := ebiten.MouseButton(0); k < ebiten.MouseButtonMax; k++ {
+		if inpututil.IsMouseButtonJustReleased(k) {
+			mouseKeys = append(mouseKeys, k)
+		}
+	}
+
+	if !s.canScan {
+		if len(mouseKeys) != 0 {
+			return Key{}, KeyScanUnchanged
+		}
+		s.canScan = true
+	}
+
+	if len(mouseKeys) == 0 {
+		return Key{}, KeyScanUnchanged
+	}
+
+	containsButtonCode := func(keys []ebiten.MouseButton, code int) bool {
+		for _, k := range keys {
+			if int(k) == code {
+				return true
+			}
+		}
+		return false
+	}
+
+	var mappedKey Key
+
+	// map the Ebitengine keys to the local types.
+Loop:
+	for _, k := range allKeys {
+		switch k.kind {
+		case keyMouse:
+			if containsButtonCode(mouseKeys, k.code) {
+				mappedKey = k
+				break Loop
+			}
+		}
+	}
+
+	status := KeyScanUnchanged
+	if mappedKey.name != "" {
+		status = KeyScanCompleted
+	}
+	return mappedKey, status
 }
 
 func (s *KeyScanner) scanGamepad() (Key, KeyScanStatus) {
@@ -106,11 +157,11 @@ func (s *KeyScanner) scanGamepad() (Key, KeyScanStatus) {
 
 	// map the Ebitengine keys to the local types.
 Loop:
-	for _, lk := range allKeys {
-		switch lk.kind {
+	for _, k := range allKeys {
+		switch k.kind {
 		case keyGamepad:
-			if containsButtonCode(gamepadKeys, lk.code) {
-				mappedKey = lk
+			if containsButtonCode(gamepadKeys, k.code) {
+				mappedKey = k
 				break Loop
 			}
 		}

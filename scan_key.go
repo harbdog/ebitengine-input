@@ -13,6 +13,25 @@ const (
 	KeyScanCompleted
 )
 
+const (
+	scanKeyMouseWheelDown Action = iota
+	scanKeyMouseWheelUp
+	scanKeyActionCount // always last to keep accurate count to iterate over
+)
+
+var (
+	// use special handler and keymap to detect certain events for key scanning purposes
+	scanKeyHandler *Handler
+	scanKeyKeymap  = Keymap{
+		scanKeyMouseWheelDown: {KeyWheelDown},
+		scanKeyMouseWheelUp:   {KeyWheelUp},
+	}
+)
+
+func newScanKeyHandler(scanHandler *Handler) *Handler {
+	return scanHandler.sys.NewHandler(scanHandler.id, scanKeyKeymap)
+}
+
 // KeyScanner checks the currently pressed keys and buttons and tries to map them
 // to a local Key type that can be used in a Keymap.
 //
@@ -50,6 +69,13 @@ func NewKeyScanner(h *Handler) *KeyScanner {
 func (s *KeyScanner) Scan() (Key, KeyScanStatus) {
 	// TODO: respect the enabled input devices.
 
+	// FIXME: if s.h == nil, panic or err because this method requires handler instance to be provided?
+
+	if scanKeyHandler == nil {
+		// special Handler is needed to determine certain events using special keymap
+		scanKeyHandler = newScanKeyHandler(s.h)
+	}
+
 	// Note that this function may not be needed by some users,
 	// so we're better of making it as independent as possible, so it
 	// doesn't make the package more expensive if you don't use it.
@@ -66,12 +92,27 @@ func (s *KeyScanner) Scan() (Key, KeyScanStatus) {
 		// scan for gamepad buttons
 		k, status = s.scanGamepad()
 	}
+	if status == KeyScanUnchanged {
+		// scan for special keys, like mouse wheel up/down
+		k, status = s.scanSpecialEvents()
+	}
 
 	switch status {
 	case KeyScanCompleted:
 		s.canScan = false
+		scanKeyHandler = nil
 	}
 	return k, status
+}
+
+func (s *KeyScanner) scanSpecialEvents() (Key, KeyScanStatus) {
+	for a := Action(0); a < scanKeyActionCount; a++ {
+		if _, ok := scanKeyHandler.JustPressedActionInfo(a); ok {
+			k := scanKeyKeymap[a][0]
+			return k, KeyScanCompleted
+		}
+	}
+	return Key{}, KeyScanUnchanged
 }
 
 func (s *KeyScanner) scanMouse() (Key, KeyScanStatus) {

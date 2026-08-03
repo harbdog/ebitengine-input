@@ -725,9 +725,9 @@ func (h *Handler) isDPadAxisActive(code int, vec Vec) bool {
 func (h *Handler) wheelIsPressed(code wheelCode) bool {
 	switch code {
 	case wheelDown:
-		return h.sys.wheel.Y > 0
-	case wheelUp:
 		return h.sys.wheel.Y < 0
+	case wheelUp:
+		return h.sys.wheel.Y > 0
 	case wheelVertical:
 		return h.sys.wheel.Y != 0
 	default:

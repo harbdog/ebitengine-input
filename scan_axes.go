@@ -8,6 +8,7 @@ const (
 )
 
 var (
+	// use special handler and keymap to detect axes action events for key scanning purposes
 	scanAxesHandler *Handler
 	scanAxesKeymap  = Keymap{
 		scanAxesMouseWheel:    {KeyWheelVertical},
@@ -40,7 +41,7 @@ func (s *KeyScanner) ScanAxes() (Key, KeyScanStatus) {
 		scanAxesHandler = newScanAxesHandler(s.h)
 	}
 
-	k, status := s.scanAxesActions()
+	k, status := s.scanAxesEvents()
 
 	// FIXME: mouse motion axes do not appear to be available in ebitengine-input, can we add it?
 
@@ -52,13 +53,12 @@ func (s *KeyScanner) ScanAxes() (Key, KeyScanStatus) {
 	return k, status
 }
 
-func (s *KeyScanner) scanAxesActions() (Key, KeyScanStatus) {
+func (s *KeyScanner) scanAxesEvents() (Key, KeyScanStatus) {
 	for a := Action(0); a < scanAxesActionCount; a++ {
 		if _, ok := scanAxesHandler.JustPressedActionInfo(a); ok {
 			k := scanAxesKeymap[a][0]
 			return k, KeyScanCompleted
 		}
 	}
-
 	return Key{}, KeyScanUnchanged
 }

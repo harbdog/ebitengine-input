@@ -66,6 +66,11 @@ func (e EventInfo) HasPos() bool { return e.hasPos }
 // Use Duration field to get the press duration value.
 func (e EventInfo) HasDuration() bool { return e.hasDuration }
 
+// IsMouseWheelEvent reports whether this event was triggered by a mouse wheel.
+func (e EventInfo) IsMouseWheelEvent() bool {
+	return e.kind == keyWheel || e.kind == keyWheelWithCtrl || e.kind == keyWheelWithShift || e.kind == keyWheelWithCtrlShift
+}
+
 // IsTouchEvent reports whether this event was triggered by a screen touch device.
 //
 // Deprecated: Use Source().IsTouch() instead.

@@ -35,9 +35,9 @@ func newScanAxesHandler(scanHandler *Handler) *Handler {
 // * Unchanged - nothing updated since the last Scan() operation
 // * Completed - the user finished specifying the keys combination, you can use the Key as a new binding
 func (s *KeyScanner) ScanAxes() (Key, KeyScanStatus) {
-
-	// FIXME: if s.h == nil, panic or err because this method requires handler instance to be provided?
-
+	if s == nil || s.h == nil || s.h.sys == nil {
+		panic("KeyScanner must be initialized using: NewKeyScanner(*Handler)")
+	}
 	if scanAxesHandler == nil {
 		// special Handler is needed to determine axis events using special keymap
 		scanAxesHandler = newScanAxesHandler(s.h)

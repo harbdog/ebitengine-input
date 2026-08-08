@@ -69,8 +69,9 @@ func NewKeyScanner(h *Handler) *KeyScanner {
 func (s *KeyScanner) Scan() (Key, KeyScanStatus) {
 	// TODO: respect the enabled input devices.
 
-	// FIXME: if s.h == nil, panic or err because this method requires handler instance to be provided?
-
+	if s == nil || s.h == nil || s.h.sys == nil {
+		panic("KeyScanner must be initialized using: NewKeyScanner(*Handler)")
+	}
 	if scanKeyHandler == nil {
 		// special Handler is needed to determine certain events using special keymap
 		scanKeyHandler = newScanKeyHandler(s.h)

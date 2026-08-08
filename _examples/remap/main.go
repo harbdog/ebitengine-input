@@ -118,7 +118,7 @@ func (g *exampleGame) Update() error {
 				// mouse wheel moves in reverse direction of draw position
 				g.pos.Y -= info.Pos.Y
 			} else if info.IsMouseMoveEvent() {
-				// mouse position (info.Pos) is absolute, the delta position (info.DeltaPos)
+				// mouse move position (info.Pos) is absolute, the delta position (info.DeltaPos)
 				// can be useful, typically when using ebiten.CursorModeCaptured
 				g.pos.X += info.DeltaPos.X
 				g.pos.Y += info.DeltaPos.Y

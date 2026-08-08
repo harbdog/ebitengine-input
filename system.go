@@ -56,6 +56,8 @@ type System struct {
 	mouseStartPos         Vec  // For "drag" event
 	mouseDragPos          Vec  // For "drag" event
 	cursorPos             Vec
+	prevCursorPos         Vec // For mouse move events
+	prevCursorDelta       Vec // For mouse just moved event
 	wheel                 Vec
 }
 
@@ -176,6 +178,8 @@ func (sys *System) UpdateWithDelta(delta float64) {
 
 	if sys.mouseEnabled {
 		x, y := ebiten.CursorPosition()
+		sys.prevCursorDelta = deltaVec(sys.cursorPos, sys.prevCursorPos)
+		sys.prevCursorPos = sys.cursorPos
 		sys.cursorPos = Vec{X: float64(x), Y: float64(y)}
 
 		// We copy a lot from the touch-style drag gesture.

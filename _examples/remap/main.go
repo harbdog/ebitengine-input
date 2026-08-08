@@ -101,7 +101,7 @@ func (g *exampleGame) Update() error {
 		g.started = true
 	}
 
-	if !g.scanningKey {
+	if !g.scanningKey && !g.scanningAxes {
 		// react to ping action by "highlighting" the "character"
 		if g.inputHandler.ActionIsJustPressed(ActionPing) {
 			fmt.Printf("ping! (activated with %s keybind)\n", g.k)
@@ -117,6 +117,11 @@ func (g *exampleGame) Update() error {
 			if info.IsMouseWheelEvent() {
 				// mouse wheel moves in reverse direction of draw position
 				g.pos.Y -= info.Pos.Y
+			} else if info.IsMouseMoveEvent() {
+				// mouse position (info.Pos) is absolute, the delta position (info.DeltaPos)
+				// can be useful, typically when using ebiten.CursorModeCaptured
+				g.pos.X += info.DeltaPos.X
+				g.pos.Y += info.DeltaPos.Y
 			} else {
 				g.pos.X += info.Pos.X
 				g.pos.Y += info.Pos.Y
@@ -189,7 +194,7 @@ func (g *exampleGame) makeKeymap() input.Keymap {
 
 func (g *exampleGame) Init() {
 	g.k = input.KeyQ
-	g.axes = input.KeyGamepadLStickMotion
+	g.axes = input.KeyMouseMove
 	g.inputHandler = g.inputSystem.NewHandler(0, g.makeKeymap())
 	g.keyScanner = input.NewKeyScanner(g.inputHandler)
 }

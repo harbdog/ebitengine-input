@@ -233,7 +233,7 @@ func (h *Handler) keyIsEnabled(k Key, mask DeviceKind) bool {
 		return mask&MouseDevice != 0
 	case keyMouseWithShift:
 		return mask&MouseDevice != 0
-	case keyMouse:
+	case keyMouse, keyMouseMove:
 		return mask&MouseDevice != 0
 	case keyWheel, keyWheelWithCtrl, keyWheelWithShift, keyWheelWithCtrlShift:
 		return mask&MouseDevice != 0
@@ -272,6 +272,7 @@ func (h *Handler) JustReleasedActionInfo(action Action) (EventInfo, bool) {
 		info.kind = k.kind
 		info.hasPos = keyHasPos(k.kind)
 		info.Pos = h.getKeyPos(k)
+		info.DeltaPos = deltaVec(info.Pos, h.getKeyPrevPos(k))
 		info.StartPos = h.getKeyStartPos(k)
 		h.updateLastDevice(k.kind)
 		return info, true
@@ -340,6 +341,7 @@ func (h *Handler) JustPressedActionInfo(action Action) (EventInfo, bool) {
 		info.kind = k.kind
 		info.hasPos = keyHasPos(k.kind)
 		info.Pos = h.getKeyPos(k)
+		info.DeltaPos = deltaVec(info.Pos, h.getKeyPrevPos(k))
 		info.StartPos = h.getKeyStartPos(k)
 		h.updateLastDevice(k.kind)
 		return info, true
@@ -376,6 +378,7 @@ func (h *Handler) PressedActionInfo(action Action) (EventInfo, bool) {
 		info.kind = k.kind
 		info.hasPos = keyHasPos(k.kind)
 		info.Pos = h.getKeyPos(k)
+		info.DeltaPos = deltaVec(info.Pos, h.getKeyPrevPos(k))
 		info.StartPos = h.getKeyStartPos(k)
 		info.hasDuration = keyHasDuration(k.kind)
 		info.Duration = h.getKeyPressDuration(k)
@@ -516,6 +519,8 @@ func (h *Handler) keyIsJustPressed(k Key) bool {
 		return h.gamepadStickIsJustPressed(stickCode(k.code), ebiten.StandardGamepadAxisRightStickHorizontal, ebiten.StandardGamepadAxisRightStickVertical)
 	case keyGamepadStickMotion:
 		return h.gamepadStickMotionIsJustPressed(stickCode(k.code))
+	case keyMouseMove:
+		return h.mouseMoveIsJustPressed()
 	case keyMouse:
 		return inpututil.IsMouseButtonJustPressed(ebiten.MouseButton(k.code))
 	case keyMouseWithCtrl:
@@ -569,8 +574,8 @@ func (h *Handler) getKeyStartPos(k Key) Vec {
 func (h *Handler) getKeyPos(k Key) Vec {
 	var result Vec
 	switch k.kind {
-	case keyMouse, keyMouseWithCtrl, keyMouseWithShift, keyMouseWithCtrlShift:
-		result = h.sys.cursorPos
+	case keyMouse, keyMouseMove, keyMouseWithCtrl, keyMouseWithShift, keyMouseWithCtrlShift:
+		result = h.getMouseVec()
 	case keyTouch:
 		result = h.sys.touchTapPos
 	case keyTouchDrag:
@@ -580,8 +585,22 @@ func (h *Handler) getKeyPos(k Key) Vec {
 	case keyWheel, keyWheelWithCtrl, keyWheelWithShift, keyWheelWithCtrlShift:
 		result = h.sys.wheel
 	case keyGamepadStickMotion:
-		axis1, axis2 := h.getStickAxes(stickCode(k.code))
-		result = h.getStickVec(axis1, axis2)
+		result = h.getStickVec(h.getStickAxes(stickCode(k.code)))
+	}
+	return result
+}
+
+func (h *Handler) getKeyPrevPos(k Key) Vec {
+	var result Vec
+	switch k.kind {
+	case keyMouse, keyMouseMove, keyMouseWithCtrl, keyMouseWithShift, keyMouseWithCtrlShift:
+		result = h.getMousePrevVec()
+	case keyTouchDrag:
+		result = h.sys.touchStartPos
+	case keyMouseDrag:
+		result = h.sys.mouseStartPos
+	case keyGamepadStickMotion:
+		result = h.getStickPrevVec(h.getStickAxes(stickCode(k.code)))
 	}
 	return result
 }
@@ -629,6 +648,8 @@ func (h *Handler) keyIsPressed(k Key) bool {
 		return h.gamepadStickIsPressed(stickCode(k.code), ebiten.StandardGamepadAxisRightStickHorizontal, ebiten.StandardGamepadAxisRightStickVertical)
 	case keyGamepadStickMotion:
 		return h.gamepadStickMotionIsPressed(stickCode(k.code))
+	case keyMouseMove:
+		return h.mouseMoveIsPressed()
 	case keyMouse:
 		return ebiten.IsMouseButtonPressed(ebiten.MouseButton(k.code))
 	case keyMouseWithCtrl:
@@ -881,6 +902,24 @@ func (h *Handler) mappedGamepadKey(keyCode int) ebiten.GamepadButton {
 	default:
 		return ebiten.GamepadButton(keyCode)
 	}
+}
+
+func (h *Handler) mouseMoveIsJustPressed() bool {
+	prevDelta := h.sys.prevCursorDelta
+	return prevDelta.X == 0 && prevDelta.Y == 0 && h.mouseMoveIsPressed()
+}
+
+func (h *Handler) mouseMoveIsPressed() bool {
+	delta := deltaVec(h.getMouseVec(), h.getMousePrevVec())
+	return delta.X != 0 || delta.Y != 0
+}
+
+func (h *Handler) getMousePrevVec() Vec {
+	return h.sys.prevCursorPos
+}
+
+func (h *Handler) getMouseVec() Vec {
+	return h.sys.cursorPos
 }
 
 func (h *Handler) updateLastDevice(kind keyKind) {

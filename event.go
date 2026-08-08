@@ -55,6 +55,7 @@ type EventInfo struct {
 
 	Duration int
 	Pos      Vec
+	DeltaPos Vec
 	StartPos Vec
 }
 
@@ -65,6 +66,11 @@ func (e EventInfo) HasPos() bool { return e.hasPos }
 // HasDuration reports whether this event has a press duration associated with it.
 // Use Duration field to get the press duration value.
 func (e EventInfo) HasDuration() bool { return e.hasDuration }
+
+// IsMouseMoveEvent reports whether this event was triggered by mouse movement.
+func (e EventInfo) IsMouseMoveEvent() bool {
+	return e.kind == keyMouseMove
+}
 
 // IsMouseWheelEvent reports whether this event was triggered by a mouse wheel.
 func (e EventInfo) IsMouseWheelEvent() bool {

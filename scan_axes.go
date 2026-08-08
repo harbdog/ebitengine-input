@@ -1,7 +1,8 @@
 package input
 
 const (
-	scanAxesMouseWheel Action = iota
+	scanAxesMouseMove Action = iota
+	scanAxesMouseWheel
 	scanAxesGamepadLStick
 	scanAxesGamepadRStick
 	scanAxesActionCount // always last to keep accurate count to iterate over
@@ -11,6 +12,7 @@ var (
 	// use special handler and keymap to detect axes action events for key scanning purposes
 	scanAxesHandler *Handler
 	scanAxesKeymap  = Keymap{
+		scanAxesMouseMove:     {KeyMouseMove},
 		scanAxesMouseWheel:    {KeyWheelVertical},
 		scanAxesGamepadLStick: {KeyGamepadLStickMotion},
 		scanAxesGamepadRStick: {KeyGamepadRStickMotion},
@@ -43,7 +45,13 @@ func (s *KeyScanner) ScanAxes() (Key, KeyScanStatus) {
 
 	k, status := s.scanAxesEvents()
 
-	// FIXME: mouse motion axes do not appear to be available in ebitengine-input, can we add it?
+	if !s.canScan {
+		if k.name != "" {
+			// do not start scanning until preexisting axes presses are no longer held
+			return Key{}, KeyScanUnchanged
+		}
+		s.canScan = true
+	}
 
 	switch status {
 	case KeyScanCompleted:

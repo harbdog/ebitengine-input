@@ -97,6 +97,14 @@ func (s *KeyScanner) Scan() (Key, KeyScanStatus) {
 		k, status = s.scanSpecialEvents()
 	}
 
+	if !s.canScan {
+		if k.name != "" {
+			// do not start scanning until preexisting button presses are no longer held
+			return Key{}, KeyScanUnchanged
+		}
+		s.canScan = true
+	}
+
 	switch status {
 	case KeyScanCompleted:
 		s.canScan = false
@@ -122,13 +130,6 @@ func (s *KeyScanner) scanMouse() (Key, KeyScanStatus) {
 		if inpututil.IsMouseButtonJustReleased(k) {
 			mouseKeys = append(mouseKeys, k)
 		}
-	}
-
-	if !s.canScan {
-		if len(mouseKeys) != 0 {
-			return Key{}, KeyScanUnchanged
-		}
-		s.canScan = true
 	}
 
 	if len(mouseKeys) == 0 {
@@ -182,13 +183,6 @@ func (s *KeyScanner) scanGamepad() (Key, KeyScanStatus) {
 	gamepadKeys := make([]ebiten.StandardGamepadButton, 0, 4)
 	gamepadKeys = inpututil.AppendJustReleasedStandardGamepadButtons(ebiten.GamepadID(handlerID), gamepadKeys)
 
-	if !s.canScan {
-		if len(gamepadKeys) != 0 {
-			return Key{}, KeyScanUnchanged
-		}
-		s.canScan = true
-	}
-
 	if len(gamepadKeys) == 0 {
 		return Key{}, KeyScanUnchanged
 	}
@@ -227,13 +221,6 @@ func (s *KeyScanner) scanKeyboard() (Key, KeyScanStatus) {
 	// This slice is stack-allocated; for the most cases, 4 keys are enough.
 	keys := make([]ebiten.Key, 0, 4)
 	keys = inpututil.AppendJustReleasedKeys(keys)
-
-	if !s.canScan {
-		if len(keys) != 0 {
-			return Key{}, KeyScanUnchanged
-		}
-		s.canScan = true
-	}
 
 	if len(keys) == 0 {
 		// We're still collecting the keys.

@@ -102,6 +102,13 @@ func (g *exampleGame) Update() error {
 	}
 
 	if !g.scanningKey && !g.scanningAxes {
+		// react to remap actions
+		if g.inputHandler.ActionIsJustPressed(ActionRemapKey) {
+			g.scanningKey = true
+		} else if g.inputHandler.ActionIsJustPressed(ActionRemapAxes) {
+			g.scanningAxes = true
+		}
+
 		// react to ping action by "highlighting" the "character"
 		if g.inputHandler.ActionIsJustPressed(ActionPing) {
 			fmt.Printf("ping! (activated with %s keybind)\n", g.k)
@@ -133,10 +140,10 @@ func (g *exampleGame) Update() error {
 	}
 
 	// keep scanning of keys separate from axes to ensure events are isolated to just what is needed
-	if !g.scanningAxes {
+	if g.scanningKey {
 		g.handleRemapKey()
 	}
-	if !g.scanningKey {
+	if g.scanningAxes {
 		g.handleRemapAxes()
 	}
 
@@ -144,13 +151,6 @@ func (g *exampleGame) Update() error {
 }
 
 func (g *exampleGame) handleRemapKey() {
-	if !g.scanningKey {
-		if g.inputHandler.ActionIsJustPressed(ActionRemapKey) {
-			g.scanningKey = true
-		}
-		return
-	}
-
 	k, status := g.keyScanner.Scan()
 	if k == input.KeyWithModifier(input.KeyEnter, input.ModControl) ||
 		k == input.KeyWithModifier(input.KeyEnter, input.ModShift) ||
@@ -166,13 +166,6 @@ func (g *exampleGame) handleRemapKey() {
 }
 
 func (g *exampleGame) handleRemapAxes() {
-	if !g.scanningAxes {
-		if g.inputHandler.ActionIsJustPressed(ActionRemapAxes) {
-			g.scanningAxes = true
-		}
-		return
-	}
-
 	axes, status := g.keyScanner.ScanAxes()
 	if status == input.KeyScanCompleted {
 		// Check for the new key to be available.

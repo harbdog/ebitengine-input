@@ -133,9 +133,10 @@ func (g *exampleGame) Update() error {
 	}
 
 	// keep scanning of keys separate from axes to ensure events are isolated to just what is needed
-	if g.scanningKey {
+	if !g.scanningAxes {
 		g.handleRemapKey()
-	} else if g.scanningAxes {
+	}
+	if !g.scanningKey {
 		g.handleRemapAxes()
 	}
 

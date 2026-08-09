@@ -117,7 +117,7 @@ func (g *exampleGame) Update() error {
 			if info.IsMouseWheelEvent() {
 				// mouse wheel moves in reverse direction of draw position
 				g.pos.Y -= info.Pos.Y
-			} else if info.IsMouseMoveEvent() {
+			} else if info.IsMouseMotionEvent() {
 				// mouse move position (info.Pos) is absolute, the delta position (info.DeltaPos)
 				// can be useful, typically when using ebiten.CursorModeCaptured
 				g.pos.X += info.DeltaPos.X
@@ -194,7 +194,7 @@ func (g *exampleGame) makeKeymap() input.Keymap {
 
 func (g *exampleGame) Init() {
 	g.k = input.KeyQ
-	g.axes = input.KeyMouseMove
+	g.axes = input.KeyMouseMotion
 	g.inputHandler = g.inputSystem.NewHandler(0, g.makeKeymap())
 	g.keyScanner = input.NewKeyScanner(g.inputHandler)
 }

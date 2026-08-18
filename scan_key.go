@@ -20,9 +20,7 @@ const (
 )
 
 var (
-	// use special handler and keymap to detect certain events for key scanning purposes
-	scanKeyHandler *Handler
-	scanKeyKeymap  = Keymap{
+	scanKeyKeymap = Keymap{
 		scanKeyMouseWheelDown: {KeyWheelDown},
 		scanKeyMouseWheelUp:   {KeyWheelUp},
 	}
@@ -41,6 +39,10 @@ func newScanKeyHandler(scanHandler *Handler) *Handler {
 type KeyScanner struct {
 	canScan bool
 	h       *Handler
+
+	// uses special handler and keymap to detect certain events for key and axes scanning purposes
+	_scanKeyHelper  *Handler
+	_scanAxesHelper *Handler
 }
 
 // NewKeyScanner creates a key scanner for the specifier input Handler.
@@ -72,9 +74,9 @@ func (s *KeyScanner) Scan() (Key, KeyScanStatus) {
 	if s == nil || s.h == nil || s.h.sys == nil {
 		panic("KeyScanner must be initialized using: NewKeyScanner(*Handler)")
 	}
-	if scanKeyHandler == nil {
+	if s._scanKeyHelper == nil {
 		// special Handler is needed to determine certain events using special keymap
-		scanKeyHandler = newScanKeyHandler(s.h)
+		s._scanKeyHelper = newScanKeyHandler(s.h)
 	}
 
 	// Note that this function may not be needed by some users,
@@ -109,14 +111,14 @@ func (s *KeyScanner) Scan() (Key, KeyScanStatus) {
 	switch status {
 	case KeyScanCompleted:
 		s.canScan = false
-		scanKeyHandler = nil
+		s._scanKeyHelper = nil
 	}
 	return k, status
 }
 
 func (s *KeyScanner) scanSpecialEvents() (Key, KeyScanStatus) {
 	for a := Action(0); a < scanKeyActionCount; a++ {
-		if _, ok := scanKeyHandler.JustPressedActionInfo(a); ok {
+		if _, ok := s._scanKeyHelper.JustPressedActionInfo(a); ok {
 			k := scanKeyKeymap[a][0]
 			return k, KeyScanCompleted
 		}

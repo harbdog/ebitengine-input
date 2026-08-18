@@ -8,9 +8,7 @@ const (
 )
 
 var (
-	// use special handler and keymap to detect axes action events for key scanning purposes
-	scanAxesHandler *Handler
-	scanAxesKeymap  = Keymap{
+	scanAxesKeymap = Keymap{
 		scanAxesMouseWheel:    {KeyWheelVertical},
 		scanAxesGamepadLStick: {KeyGamepadLStickMotion},
 		scanAxesGamepadRStick: {KeyGamepadRStickMotion},
@@ -36,9 +34,9 @@ func (s *KeyScanner) ScanAxes() (Key, KeyScanStatus) {
 	if s == nil || s.h == nil || s.h.sys == nil {
 		panic("KeyScanner must be initialized using: NewKeyScanner(*Handler)")
 	}
-	if scanAxesHandler == nil {
+	if s._scanAxesHelper == nil {
 		// special Handler is needed to determine axis events using special keymap
-		scanAxesHandler = newScanAxesHandler(s.h)
+		s._scanAxesHelper = newScanAxesHandler(s.h)
 	}
 
 	k, status := s.scanAxesEvents()
@@ -54,14 +52,14 @@ func (s *KeyScanner) ScanAxes() (Key, KeyScanStatus) {
 	switch status {
 	case KeyScanCompleted:
 		s.canScan = false
-		scanAxesHandler = nil
+		s._scanAxesHelper = nil
 	}
 	return k, status
 }
 
 func (s *KeyScanner) scanAxesEvents() (Key, KeyScanStatus) {
 	for a := Action(0); a < scanAxesActionCount; a++ {
-		if _, ok := scanAxesHandler.JustPressedActionInfo(a); ok {
+		if _, ok := s._scanAxesHelper.JustPressedActionInfo(a); ok {
 			k := scanAxesKeymap[a][0]
 			return k, KeyScanCompleted
 		}

@@ -1,13 +1,15 @@
 package input
 
 const (
-	scanAxesMouseWheel Action = iota
+	scanAxesMouse Action = iota
+	scanAxesMouseWheel
 	scanAxesGamepadLStick
 	scanAxesGamepadRStick
 )
 
 var (
 	scanAxesKeymap = Keymap{
+		scanAxesMouse:         {KeyMouseMotion},
 		scanAxesMouseWheel:    {KeyWheelVertical},
 		scanAxesGamepadLStick: {KeyGamepadLStickMotion},
 		scanAxesGamepadRStick: {KeyGamepadRStickMotion},

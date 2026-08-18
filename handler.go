@@ -248,7 +248,7 @@ func (h *Handler) keyIsEnabled(k Key, mask DeviceKind) bool {
 		return mask&MouseDevice != 0
 	case keyMouseWithShift:
 		return mask&MouseDevice != 0
-	case keyMouse:
+	case keyMouse, keyMouseMotion:
 		return mask&MouseDevice != 0
 	case keyWheel, keyWheelWithCtrl, keyWheelWithShift, keyWheelWithCtrlShift:
 		return mask&MouseDevice != 0
@@ -534,6 +534,8 @@ func (h *Handler) keyIsJustPressed(k Key) bool {
 		return h.gamepadStickIsJustPressed(stickCode(k.code), ebiten.StandardGamepadAxisRightStickHorizontal, ebiten.StandardGamepadAxisRightStickVertical)
 	case keyGamepadStickMotion:
 		return h.gamepadStickMotionIsJustPressed(stickCode(k.code))
+	case keyMouseMotion:
+		return h.mouseMotionIsJustPressed()
 	case keyMouse:
 		return inpututil.IsMouseButtonJustPressed(ebiten.MouseButton(k.code))
 	case keyMouseWithCtrl:
@@ -587,7 +589,7 @@ func (h *Handler) getKeyStartPos(k Key) Vec {
 func (h *Handler) getKeyPos(k Key) Vec {
 	var result Vec
 	switch k.kind {
-	case keyMouse, keyMouseWithCtrl, keyMouseWithShift, keyMouseWithCtrlShift:
+	case keyMouse, keyMouseMotion, keyMouseWithCtrl, keyMouseWithShift, keyMouseWithCtrlShift:
 		result = h.getMouseVec()
 	case keyTouch:
 		result = h.sys.touchTapPos
@@ -606,7 +608,7 @@ func (h *Handler) getKeyPos(k Key) Vec {
 func (h *Handler) getKeyPrevPos(k Key) Vec {
 	var result Vec
 	switch k.kind {
-	case keyMouse, keyMouseWithCtrl, keyMouseWithShift, keyMouseWithCtrlShift:
+	case keyMouse, keyMouseMotion, keyMouseWithCtrl, keyMouseWithShift, keyMouseWithCtrlShift:
 		result = h.getMousePrevVec()
 	case keyTouchDrag:
 		result = h.sys.touchStartPos
@@ -661,6 +663,8 @@ func (h *Handler) keyIsPressed(k Key) bool {
 		return h.gamepadStickIsPressed(stickCode(k.code), ebiten.StandardGamepadAxisRightStickHorizontal, ebiten.StandardGamepadAxisRightStickVertical)
 	case keyGamepadStickMotion:
 		return h.gamepadStickMotionIsPressed(stickCode(k.code))
+	case keyMouseMotion:
+		return h.mouseMotionIsPressed()
 	case keyMouse:
 		return ebiten.IsMouseButtonPressed(ebiten.MouseButton(k.code))
 	case keyMouseWithCtrl:
@@ -913,6 +917,16 @@ func (h *Handler) mappedGamepadKey(keyCode int) ebiten.GamepadButton {
 	default:
 		return ebiten.GamepadButton(keyCode)
 	}
+}
+
+func (h *Handler) mouseMotionIsJustPressed() bool {
+	prevDelta := h.sys.prevCursorDelta
+	return prevDelta.X == 0 && prevDelta.Y == 0 && h.mouseMotionIsPressed()
+}
+
+func (h *Handler) mouseMotionIsPressed() bool {
+	delta := deltaVec(h.getMouseVec(), h.getMousePrevVec())
+	return delta.X != 0 || delta.Y != 0
 }
 
 func (h *Handler) getMousePrevVec() Vec {

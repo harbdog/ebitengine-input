@@ -1,8 +1,7 @@
 package input
 
 const (
-	scanAxesMouse Action = iota
-	scanAxesMouseWheel
+	scanAxesMouseWheel Action = iota
 	scanAxesGamepadLStick
 	scanAxesGamepadRStick
 	scanAxesActionCount // always last to keep accurate count to iterate over
@@ -12,7 +11,6 @@ var (
 	// use special handler and keymap to detect axes action events for key scanning purposes
 	scanAxesHandler *Handler
 	scanAxesKeymap  = Keymap{
-		scanAxesMouse:         {KeyMouseMotion},
 		scanAxesMouseWheel:    {KeyWheelVertical},
 		scanAxesGamepadLStick: {KeyGamepadLStickMotion},
 		scanAxesGamepadRStick: {KeyGamepadRStickMotion},

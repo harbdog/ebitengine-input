@@ -96,7 +96,6 @@ var allKeys = []Key{
 	KeyMouseLeft,
 	KeyMouseLeftDrag,
 	KeyMouseMiddle,
-	KeyMouseMotion,
 	KeyMouseRight,
 	KeyN,
 	KeyNumLock,

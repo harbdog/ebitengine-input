@@ -16,7 +16,6 @@ const (
 	keyMouseWithShift
 	keyMouseWithCtrlShift
 	keyMouseDrag
-	keyMouseMotion
 	keyTouch
 	keyTouchDrag
 	keyWheel
@@ -32,7 +31,7 @@ func (k keyKind) device() DeviceKind {
 		return KeyboardDevice
 	case keyGamepad, keyGamepadLeftStick, keyGamepadRightStick, keyGamepadStickMotion:
 		return GamepadDevice
-	case keyMouse, keyMouseMotion, keyMouseDrag:
+	case keyMouse, keyMouseDrag:
 		return MouseDevice
 	case keyWheel, keyWheelWithCtrl, keyWheelWithShift, keyWheelWithCtrlShift:
 		return MouseDevice
@@ -104,7 +103,6 @@ var keyKindFlagTable = [256]keyKindFlag{
 	keyMouseWithCtrl:      keyFlagHasPos,
 	keyMouseWithShift:     keyFlagHasPos,
 	keyMouseWithCtrlShift: keyFlagHasPos,
-	keyMouseMotion:        keyFlagHasPos,
 	keyMouseDrag:          keyFlagHasPos,
 	keyTouch:              keyFlagHasPos,
 	keyWheel:              keyFlagHasPos,

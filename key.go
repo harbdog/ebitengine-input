@@ -108,7 +108,6 @@ var (
 
 // Mouse keys.
 var (
-	KeyMouseMotion  = Key{kind: keyMouseMotion, name: "mouse_motion"}
 	KeyMouseLeft    = Key{code: int(ebiten.MouseButtonLeft), kind: keyMouse, name: "mouse_left_button"}
 	KeyMouseRight   = Key{code: int(ebiten.MouseButtonRight), kind: keyMouse, name: "mouse_right_button"}
 	KeyMouseMiddle  = Key{code: int(ebiten.MouseButtonMiddle), kind: keyMouse, name: "mouse_middle_button"}

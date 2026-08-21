@@ -16,18 +16,19 @@ const (
 const (
 	scanKeyMouseWheelDown Action = iota
 	scanKeyMouseWheelUp
-	scanKeyActionCount // always last to keep accurate count to iterate over
+	scanSpecialKeyActionCount // always last to keep accurate count to iterate over
 )
 
 var (
-	scanKeyKeymap = Keymap{
+	specialKeyKeymap = Keymap{
 		scanKeyMouseWheelDown: {KeyWheelDown},
 		scanKeyMouseWheelUp:   {KeyWheelUp},
 	}
 )
 
-func newScanKeyHandler(scanHandler *Handler) *Handler {
-	return scanHandler.sys.NewHandler(scanHandler.id, scanKeyKeymap)
+func newSpecialKeyScanHandler(scanHandler *Handler) *Handler {
+	// create new handler used to help scan for special keys to be able to detect them
+	return scanHandler.sys.NewHandler(scanHandler.id, specialKeyKeymap)
 }
 
 // KeyScanner checks the currently pressed keys and buttons and tries to map them
@@ -41,8 +42,8 @@ type KeyScanner struct {
 	h       *Handler
 
 	// uses special handler and keymap to detect certain events for key and axes scanning purposes
-	_scanKeyHelper  *Handler
-	_scanAxesHelper *Handler
+	_scanSpecialKeyHelper *Handler
+	_scanAxesHelper       *Handler
 }
 
 // NewKeyScanner creates a key scanner for the specifier input Handler.
@@ -74,9 +75,9 @@ func (s *KeyScanner) Scan() (Key, KeyScanStatus) {
 	if s == nil || s.h == nil || s.h.sys == nil {
 		panic("KeyScanner must be initialized using: NewKeyScanner(*Handler)")
 	}
-	if s._scanKeyHelper == nil {
+	if s._scanSpecialKeyHelper == nil {
 		// special Handler is needed to determine certain events using special keymap
-		s._scanKeyHelper = newScanKeyHandler(s.h)
+		s._scanSpecialKeyHelper = newSpecialKeyScanHandler(s.h)
 	}
 
 	// Note that this function may not be needed by some users,
@@ -97,7 +98,7 @@ func (s *KeyScanner) Scan() (Key, KeyScanStatus) {
 	}
 	if status == KeyScanUnchanged {
 		// scan for special keys, like mouse wheel up/down
-		k, status = s.scanSpecialEvents()
+		k, status = s.scanSpecialKeys()
 	}
 
 	if !s.canScan {
@@ -111,15 +112,15 @@ func (s *KeyScanner) Scan() (Key, KeyScanStatus) {
 	switch status {
 	case KeyScanCompleted:
 		s.canScan = false
-		s._scanKeyHelper = nil
+		s._scanSpecialKeyHelper = nil
 	}
 	return k, status
 }
 
-func (s *KeyScanner) scanSpecialEvents() (Key, KeyScanStatus) {
-	for a := Action(0); a < scanKeyActionCount; a++ {
-		if _, ok := s._scanKeyHelper.JustPressedActionInfo(a); ok {
-			k := scanKeyKeymap[a][0]
+func (s *KeyScanner) scanSpecialKeys() (Key, KeyScanStatus) {
+	for a := Action(0); a < scanSpecialKeyActionCount; a++ {
+		if _, ok := s._scanSpecialKeyHelper.JustPressedActionInfo(a); ok {
+			k := specialKeyKeymap[a][0]
 			return k, KeyScanCompleted
 		}
 	}

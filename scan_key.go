@@ -90,11 +90,11 @@ func (s *KeyScanner) Scan() (Key, KeyScanStatus) {
 	k, status := s.scanKeyboard(nil, nil)
 	if status == KeyScanUnchanged {
 		// scan for mouse buttons
-		k, status = s.scanMouse()
+		k, status = s.scanMouse(nil, nil)
 	}
 	if status == KeyScanUnchanged {
 		// scan for gamepad buttons
-		k, status = s.scanGamepad()
+		k, status = s.scanGamepad(nil)
 	}
 	if status == KeyScanUnchanged {
 		// scan for special keys, like mouse wheel up/down
@@ -127,9 +127,8 @@ func (s *KeyScanner) scanSpecialKeys() (Key, KeyScanStatus) {
 	return Key{}, KeyScanUnchanged
 }
 
-func (s *KeyScanner) scanMouse() (Key, KeyScanStatus) {
+func (s *KeyScanner) scanMouse(mouseKeys []ebiten.MouseButton, heldKeys []ebiten.Key) (Key, KeyScanStatus) {
 	// We will need to do our own "AppendJustReleased" for mouse button presses
-	mouseKeys := make([]ebiten.MouseButton, 0, 4)
 	for k := ebiten.MouseButton(0); k < ebiten.MouseButtonMax; k++ {
 		if inpututil.IsMouseButtonJustReleased(k) {
 			mouseKeys = append(mouseKeys, k)
@@ -164,7 +163,7 @@ Loop:
 	}
 
 	// attach any held key modifiers
-	keymod := s.scanKeyModifiers(nil)
+	keymod := s.scanKeyModifiers(heldKeys)
 	if keymod != ModUnknown {
 		switch mappedKey.kind {
 		case keyMouse:
@@ -179,12 +178,11 @@ Loop:
 	return mappedKey, status
 }
 
-func (s *KeyScanner) scanGamepad() (Key, KeyScanStatus) {
+func (s *KeyScanner) scanGamepad(gamepadKeys []ebiten.StandardGamepadButton) (Key, KeyScanStatus) {
 	var handlerID uint8
 	if s.h != nil {
 		handlerID = s.h.id
 	}
-	gamepadKeys := make([]ebiten.StandardGamepadButton, 0, 4)
 	gamepadKeys = inpututil.AppendJustReleasedStandardGamepadButtons(ebiten.GamepadID(handlerID), gamepadKeys)
 
 	if len(gamepadKeys) == 0 {

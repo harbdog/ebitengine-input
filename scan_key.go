@@ -87,7 +87,7 @@ func (s *KeyScanner) Scan() (Key, KeyScanStatus) {
 	// This function doesn't have to be very fast, but it should be relatively
 	// inexpensive for the "no keys were pressed" case.
 	// When some keys combo is being pressed, it's OK to spend some resources.
-	k, status := s.scanKeyboard()
+	k, status := s.scanKeyboard(nil, nil)
 	if status == KeyScanUnchanged {
 		// scan for mouse buttons
 		k, status = s.scanMouse()
@@ -164,7 +164,7 @@ Loop:
 	}
 
 	// attach any held key modifiers
-	keymod := s.scanKeyModifiers()
+	keymod := s.scanKeyModifiers(nil)
 	if keymod != ModUnknown {
 		switch mappedKey.kind {
 		case keyMouse:
@@ -221,9 +221,7 @@ Loop:
 	return mappedKey, status
 }
 
-func (s *KeyScanner) scanKeyboard() (Key, KeyScanStatus) {
-	// This slice is stack-allocated; for the most cases, 4 keys are enough.
-	keys := make([]ebiten.Key, 0, 4)
+func (s *KeyScanner) scanKeyboard(keys []ebiten.Key, heldKeys []ebiten.Key) (Key, KeyScanStatus) {
 	keys = inpututil.AppendJustReleasedKeys(keys)
 
 	if len(keys) == 0 {
@@ -259,7 +257,7 @@ Loop:
 	}
 
 	// attach any held key modifiers
-	keymod := s.scanKeyModifiers()
+	keymod := s.scanKeyModifiers(heldKeys)
 	if keymod != ModUnknown {
 		switch mappedKey.kind {
 		case keyKeyboard:
@@ -274,22 +272,21 @@ Loop:
 	return mappedKey, status
 }
 
-func (s *KeyScanner) scanKeyModifiers() KeyModifier {
-	if !s.canScan {
-		return ModUnknown
-	}
-
-	heldKeys := make([]ebiten.Key, 0, 4)
+func (s *KeyScanner) scanKeyModifiers(heldKeys []ebiten.Key) KeyModifier {
 	heldKeys = inpututil.AppendPressedKeys(heldKeys)
 
 	var ctrlKey Key
 	var shiftKey Key
 	for _, k := range heldKeys {
 		switch k {
+		case ebiten.KeyControl:
+			ctrlKey = KeyControl
 		case ebiten.KeyControlLeft:
 			ctrlKey = KeyControlLeft
 		case ebiten.KeyControlRight:
 			ctrlKey = KeyControlRight
+		case ebiten.KeyShift:
+			shiftKey = KeyShift
 		case ebiten.KeyShiftLeft:
 			shiftKey = KeyShiftLeft
 		case ebiten.KeyShiftRight:

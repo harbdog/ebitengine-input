@@ -105,7 +105,7 @@ func (e EventInfo) IsGamepadEvent() bool {
 // Usually, it returns a single device mask, but sometimes an action
 // can be triggered by several devices.
 // For example, a ctrl+click key would involve both keyboard and mouse devices,
-// resulting in a KeyboardDevice|KeyboardMouse value.
+// resulting in a KeyboardDevice|MouseDevice value.
 //
 // A simulated event would have a zero mask returned, meaning
 // no real device was involved.

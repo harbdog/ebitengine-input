@@ -58,6 +58,21 @@ func (h *Handler) GamepadConnected() bool {
 	return false
 }
 
+// GamepadEventsEnabled reports whether this handler can receive gamepad events.
+func (h *Handler) GamepadEventsEnabled() bool {
+	return h.sys.gamepadEnabled
+}
+
+// KeyboardEventsEnabled reports whether this handler can receive keyboard events.
+func (h *Handler) KeyboardEventsEnabled() bool {
+	return h.sys.keyboardEnabled
+}
+
+// MouseEventsEnabled reports whether this handler can receive mouse events.
+func (h *Handler) MouseEventsEnabled() bool {
+	return h.sys.mouseEnabled
+}
+
 // TouchEventsEnabled reports whether this handler can receive screen touch events.
 func (h *Handler) TouchEventsEnabled() bool {
 	return h.sys.touchEnabled

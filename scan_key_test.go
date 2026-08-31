@@ -6,10 +6,17 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-func TestScanKeyboard(t *testing.T) {
-	testHandler := &Handler{id: 0}
+func newTestKeyScanner(config SystemConfig) *KeyScanner {
+	var sys System
+	sys.Init(config)
+	testHandler := sys.NewHandler(0, Keymap{})
 	testScanner := NewKeyScanner(testHandler)
 	testScanner.canScan = true
+	return testScanner
+}
+
+func TestScanKeyboard(t *testing.T) {
+	testScanner := newTestKeyScanner(SystemConfig{DevicesEnabled: KeyboardDevice})
 
 	tests := []struct {
 		keys     []ebiten.Key
@@ -57,12 +64,19 @@ func TestScanKeyboard(t *testing.T) {
 				i, have, have, test.want, test.want)
 		}
 	}
+
+	// test mouse press denied due to SystemConfig.DevicesEnabled mask
+	key, _ := testScanner.scanMouse([]ebiten.MouseButton{ebiten.MouseButtonMiddle}, nil)
+	if key.name != "" {
+		t.Fatalf("test device mask failed:\nkey: %s (%#v)", key, key)
+	}
 }
 
 func TestScanMouse(t *testing.T) {
-	testHandler := &Handler{id: 0}
-	testScanner := NewKeyScanner(testHandler)
-	testScanner.canScan = true
+	testScanner := newTestKeyScanner(
+		// enabling mouse with keyboard device for modifiers
+		SystemConfig{DevicesEnabled: MouseDevice | KeyboardDevice},
+	)
 
 	tests := []struct {
 		keys     []ebiten.MouseButton
@@ -102,12 +116,16 @@ func TestScanMouse(t *testing.T) {
 				i, have, have, test.want, test.want)
 		}
 	}
+
+	// test gamepad press denied due to SystemConfig.DevicesEnabled mask
+	key, _ := testScanner.scanGamepad([]ebiten.StandardGamepadButton{ebiten.StandardGamepadButtonRightBottom})
+	if key.name != "" {
+		t.Fatalf("test device mask failed:\nkey: %s (%#v)", key, key)
+	}
 }
 
 func TestScanGamepad(t *testing.T) {
-	testHandler := &Handler{id: 0}
-	testScanner := NewKeyScanner(testHandler)
-	testScanner.canScan = true
+	testScanner := newTestKeyScanner(SystemConfig{DevicesEnabled: GamepadDevice})
 
 	tests := []struct {
 		keys []ebiten.StandardGamepadButton
@@ -133,5 +151,11 @@ func TestScanGamepad(t *testing.T) {
 			t.Fatalf("test[%d] failed:\nhave: %s (%#v)\nwant: %s (%#v)",
 				i, have, have, test.want, test.want)
 		}
+	}
+
+	// test keyboard press denied due to SystemConfig.DevicesEnabled mask
+	key, _ := testScanner.scanKeyboard([]ebiten.Key{ebiten.KeyEscape}, nil)
+	if key.name != "" {
+		t.Fatalf("test device mask failed:\nkey: %s (%#v)", key, key)
 	}
 }

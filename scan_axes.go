@@ -4,7 +4,6 @@ const (
 	scanAxesMouseWheel Action = iota
 	scanAxesGamepadLStick
 	scanAxesGamepadRStick
-	scanAxesActionCount // always last to keep accurate count to iterate over
 )
 
 var (
@@ -58,10 +57,16 @@ func (s *KeyScanner) ScanAxes() (Key, KeyScanStatus) {
 }
 
 func (s *KeyScanner) scanAxesEvents() (Key, KeyScanStatus) {
-	for a := Action(0); a < scanAxesActionCount; a++ {
+	for a := range scanAxesKeymap {
 		if _, ok := s._scanAxesHelper.JustPressedActionInfo(a); ok {
 			k := scanAxesKeymap[a][0]
-			return k, KeyScanCompleted
+			// make sure the device for the axes is enabled for the input system
+			device := k.kind.device()
+			if (s.h.KeyboardEventsEnabled() && device.IsKeyboard()) ||
+				(s.h.MouseEventsEnabled() && device.IsMouse()) ||
+				(s.h.GamepadEventsEnabled() && device.IsGamepad()) {
+				return k, KeyScanCompleted
+			}
 		}
 	}
 	return Key{}, KeyScanUnchanged

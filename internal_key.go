@@ -31,11 +31,10 @@ func (k keyKind) device() DeviceKind {
 		return KeyboardDevice
 	case keyGamepad, keyGamepadLeftStick, keyGamepadRightStick, keyGamepadStickMotion:
 		return GamepadDevice
-	case keyMouse, keyMouseDrag:
+	case keyMouse, keyMouseDrag, keyWheel:
 		return MouseDevice
-	case keyWheel, keyWheelWithCtrl, keyWheelWithShift, keyWheelWithCtrlShift:
-		return MouseDevice
-	case keyMouseWithCtrl, keyMouseWithShift, keyMouseWithCtrlShift:
+	case keyMouseWithCtrl, keyMouseWithShift, keyMouseWithCtrlShift,
+		keyWheelWithCtrl, keyWheelWithShift, keyWheelWithCtrlShift:
 		return MouseDevice | KeyboardDevice
 	case keyTouch, keyTouchDrag:
 		return TouchDevice

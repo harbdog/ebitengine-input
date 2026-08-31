@@ -13,24 +13,6 @@ const (
 	KeyScanCompleted
 )
 
-const (
-	scanKeyMouseWheelDown Action = iota
-	scanKeyMouseWheelUp
-	scanSpecialKeyActionCount // always last to keep accurate count to iterate over
-)
-
-var (
-	specialKeyKeymap = Keymap{
-		scanKeyMouseWheelDown: {KeyWheelDown},
-		scanKeyMouseWheelUp:   {KeyWheelUp},
-	}
-)
-
-func newSpecialKeyScanHandler(scanHandler *Handler) *Handler {
-	// create new handler used to help scan for special keys to be able to detect them
-	return scanHandler.sys.NewHandler(scanHandler.id, specialKeyKeymap)
-}
-
 // KeyScanner checks the currently pressed keys and buttons and tries to map them
 // to a local Key type that can be used in a Keymap.
 //
@@ -41,9 +23,9 @@ type KeyScanner struct {
 	canScan bool
 	h       *Handler
 
-	// uses special handler and keymap to detect certain events for key and axes scanning purposes
-	_scanSpecialKeyHelper *Handler
-	_scanAxesHelper       *Handler
+	// uses special handlers to detect certain events for key and axes scanning purposes
+	_scanMouseKeyHelper *Handler
+	_scanAxesHelper     *Handler
 }
 
 // NewKeyScanner creates a key scanner for the specifier input Handler.
@@ -70,14 +52,8 @@ func NewKeyScanner(h *Handler) *KeyScanner {
 // * Unchanged - nothing updated since the last Scan() operation
 // * Completed - the user finished specifying the keys combination, you can use the Key as a new binding
 func (s *KeyScanner) Scan() (Key, KeyScanStatus) {
-	// TODO: respect the enabled input devices.
-
 	if s == nil || s.h == nil || s.h.sys == nil {
 		panic("KeyScanner must be initialized using: NewKeyScanner(*Handler)")
-	}
-	if s._scanSpecialKeyHelper == nil {
-		// special Handler is needed to determine certain events using special keymap
-		s._scanSpecialKeyHelper = newSpecialKeyScanHandler(s.h)
 	}
 
 	// Note that this function may not be needed by some users,
@@ -96,10 +72,6 @@ func (s *KeyScanner) Scan() (Key, KeyScanStatus) {
 		// scan for gamepad buttons
 		k, status = s.scanGamepad(nil)
 	}
-	if status == KeyScanUnchanged {
-		// scan for special keys, like mouse wheel up/down
-		k, status = s.scanSpecialKeys()
-	}
 
 	if !s.canScan {
 		if k.name != "" {
@@ -112,15 +84,33 @@ func (s *KeyScanner) Scan() (Key, KeyScanStatus) {
 	switch status {
 	case KeyScanCompleted:
 		s.canScan = false
-		s._scanSpecialKeyHelper = nil
+
 	}
 	return k, status
 }
 
-func (s *KeyScanner) scanSpecialKeys() (Key, KeyScanStatus) {
-	for a := Action(0); a < scanSpecialKeyActionCount; a++ {
-		if _, ok := s._scanSpecialKeyHelper.JustPressedActionInfo(a); ok {
-			k := specialKeyKeymap[a][0]
+const (
+	scanKeyMouseWheelDown Action = iota
+	scanKeyMouseWheelUp
+)
+
+var (
+	specialMouseKeyKeymap = Keymap{
+		scanKeyMouseWheelDown: {KeyWheelDown},
+		scanKeyMouseWheelUp:   {KeyWheelUp},
+	}
+)
+
+// newMouseKeyScanHandler creates a new handler used to help scan for
+// special mouse keys to be able to detect them.
+func newMouseKeyScanHandler(scanHandler *Handler) *Handler {
+	return scanHandler.sys.NewHandler(scanHandler.id, specialMouseKeyKeymap)
+}
+
+func (s *KeyScanner) scanSpecialMouseKeys() (Key, KeyScanStatus) {
+	for a := range specialMouseKeyKeymap {
+		if _, ok := s._scanMouseKeyHelper.JustPressedActionInfo(a); ok {
+			k := specialMouseKeyKeymap[a][0]
 			return k, KeyScanCompleted
 		}
 	}
@@ -128,6 +118,15 @@ func (s *KeyScanner) scanSpecialKeys() (Key, KeyScanStatus) {
 }
 
 func (s *KeyScanner) scanMouse(mouseKeys []ebiten.MouseButton, heldKeys []ebiten.Key) (Key, KeyScanStatus) {
+	if !s.h.MouseEventsEnabled() {
+		return Key{}, KeyScanUnchanged
+	}
+
+	if s._scanMouseKeyHelper == nil {
+		// special Handler needed to determine certain events using special keymap
+		s._scanMouseKeyHelper = newMouseKeyScanHandler(s.h)
+	}
+
 	// We will need to do our own "AppendJustReleased" for mouse button presses
 	for k := ebiten.MouseButton(0); k < ebiten.MouseButtonMax; k++ {
 		if inpututil.IsMouseButtonJustReleased(k) {
@@ -171,14 +170,20 @@ Loop:
 		}
 	}
 
-	status := KeyScanUnchanged
 	if mappedKey.name != "" {
-		status = KeyScanCompleted
+		// mouse button pressed, scan complete
+		s._scanMouseKeyHelper = nil
+		return mappedKey, KeyScanCompleted
 	}
-	return mappedKey, status
+	// no standard mouse button pressed, check special mouse key presses
+	return s.scanSpecialMouseKeys()
 }
 
 func (s *KeyScanner) scanGamepad(gamepadKeys []ebiten.StandardGamepadButton) (Key, KeyScanStatus) {
+	if !s.h.GamepadEventsEnabled() {
+		return Key{}, KeyScanUnchanged
+	}
+
 	var handlerID uint8
 	if s.h != nil {
 		handlerID = s.h.id
@@ -220,8 +225,11 @@ Loop:
 }
 
 func (s *KeyScanner) scanKeyboard(keys []ebiten.Key, heldKeys []ebiten.Key) (Key, KeyScanStatus) {
-	keys = inpututil.AppendJustReleasedKeys(keys)
+	if !s.h.KeyboardEventsEnabled() {
+		return Key{}, KeyScanUnchanged
+	}
 
+	keys = inpututil.AppendJustReleasedKeys(keys)
 	if len(keys) == 0 {
 		// We're still collecting the keys.
 		return Key{}, KeyScanUnchanged
@@ -271,6 +279,9 @@ Loop:
 }
 
 func (s *KeyScanner) scanKeyModifiers(heldKeys []ebiten.Key) KeyModifier {
+	if !s.h.KeyboardEventsEnabled() {
+		return 0
+	}
 	heldKeys = inpututil.AppendPressedKeys(heldKeys)
 
 	var ctrlKey Key

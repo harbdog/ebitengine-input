@@ -34,6 +34,9 @@ type System struct {
 	simulatedEvents     []simulatedEvent
 	hasSimulatedActions bool
 
+	keyboardEnabled bool
+	gamepadEnabled  bool
+
 	touchEnabled     bool
 	touchHasTap      bool
 	touchHasLongTap  bool
@@ -73,6 +76,8 @@ func (sys *System) Init(config SystemConfig) {
 	sys.keySlice = make([]ebiten.Key, 0, 4)
 	sys.gamepadKeySlice = make([]ebiten.GamepadButton, 0, 2)
 
+	sys.keyboardEnabled = config.DevicesEnabled&KeyboardDevice != 0
+	sys.gamepadEnabled = config.DevicesEnabled&GamepadDevice != 0
 	sys.touchEnabled = config.DevicesEnabled&TouchDevice != 0
 	sys.mouseEnabled = config.DevicesEnabled&MouseDevice != 0
 

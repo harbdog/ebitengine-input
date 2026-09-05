@@ -134,10 +134,6 @@ func (s *KeyScanner) scanMouse(mouseKeys []ebiten.MouseButton, heldKeys []ebiten
 		}
 	}
 
-	if len(mouseKeys) == 0 {
-		return Key{}, KeyScanUnchanged
-	}
-
 	containsButtonCode := func(keys []ebiten.MouseButton, code int) bool {
 		for _, k := range keys {
 			if int(k) == code {
@@ -161,6 +157,11 @@ Loop:
 		}
 	}
 
+	if mappedKey.name == "" {
+		// check special mouse key presses which cannot be detected via inpututil funcs (e.g. mouse wheel up/down)
+		mappedKey, _ = s.scanSpecialMouseKeys()
+	}
+
 	// attach any held key modifiers
 	keymod := s.scanKeyModifiers(heldKeys)
 	if keymod != ModUnknown {
@@ -170,13 +171,13 @@ Loop:
 		}
 	}
 
+	status := KeyScanUnchanged
 	if mappedKey.name != "" {
 		// mouse button pressed, scan complete
+		status = KeyScanCompleted
 		s._scanMouseKeyHelper = nil
-		return mappedKey, KeyScanCompleted
 	}
-	// no standard mouse button pressed, check special mouse key presses
-	return s.scanSpecialMouseKeys()
+	return mappedKey, status
 }
 
 func (s *KeyScanner) scanGamepad(gamepadKeys []ebiten.StandardGamepadButton) (Key, KeyScanStatus) {

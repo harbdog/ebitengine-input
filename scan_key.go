@@ -128,7 +128,7 @@ func (s *KeyScanner) scanMouse(mouseKeys []ebiten.MouseButton, heldKeys []ebiten
 	}
 
 	// We will need to do our own "AppendJustReleased" for mouse button presses
-	for k := ebiten.MouseButton(0); k < ebiten.MouseButtonMax; k++ {
+	for k := ebiten.MouseButton(0); k <= ebiten.MouseButtonMax; k++ {
 		if inpututil.IsMouseButtonJustReleased(k) {
 			mouseKeys = append(mouseKeys, k)
 		}

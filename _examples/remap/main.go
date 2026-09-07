@@ -22,6 +22,7 @@ const (
 	ActionMove
 	ActionRemapKey
 	ActionRemapAxes
+	ActionRemapCancel
 )
 
 func main() {
@@ -84,9 +85,9 @@ func screenClamp(x, y float64) (float64, float64) {
 
 func (g *exampleGame) Draw(screen *ebiten.Image) {
 	if g.scanningKey {
-		ebitenutil.DebugPrint(screen, fmt.Sprintf("keybind: %s\naxes: %s\n<scanning the new keybind>", g.k, g.axes))
+		ebitenutil.DebugPrint(screen, fmt.Sprintf("keybind: %s\naxes: %s\n<scanning the new keybind>\npress Escape to cancel", g.k, g.axes))
 	} else if g.scanningAxes {
-		ebitenutil.DebugPrint(screen, fmt.Sprintf("keybind: %s\naxes: %s\n<scanning the new axes>", g.k, g.axes))
+		ebitenutil.DebugPrint(screen, fmt.Sprintf("keybind: %s\naxes: %s\n<scanning the new axes>\npress Escape to cancel", g.k, g.axes))
 	} else {
 		ebitenutil.DebugPrint(screen, fmt.Sprintf("keybind: %s\naxes: %s\npress ctrl+enter to remap keybind\nor shift+enter to remap axes", g.k, g.axes))
 	}
@@ -137,6 +138,9 @@ func (g *exampleGame) Update() error {
 
 		// clamp position to screen window size
 		g.pos.X, g.pos.Y = screenClamp(g.pos.X, g.pos.Y)
+	} else if g.inputHandler.ActionIsJustPressed(ActionRemapCancel) {
+		g.scanningKey = false
+		g.scanningAxes = false
 	}
 
 	// keep scanning of keys separate from axes to ensure events are isolated to just what is needed
@@ -178,10 +182,11 @@ func (g *exampleGame) handleRemapAxes() {
 
 func (g *exampleGame) makeKeymap() input.Keymap {
 	return input.Keymap{
-		ActionPing:      {g.k},
-		ActionMove:      {g.axes},
-		ActionRemapKey:  {input.KeyWithModifier(input.KeyEnter, input.ModControl)},
-		ActionRemapAxes: {input.KeyWithModifier(input.KeyEnter, input.ModShift)},
+		ActionPing:        {g.k},
+		ActionMove:        {g.axes},
+		ActionRemapKey:    {input.KeyWithModifier(input.KeyEnter, input.ModControl)},
+		ActionRemapAxes:   {input.KeyWithModifier(input.KeyEnter, input.ModShift)},
+		ActionRemapCancel: {input.KeyEscape},
 	}
 }
 
